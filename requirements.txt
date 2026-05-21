@@ -5,3 +5,7 @@ aiofiles
 tenacity
 tqdm
 lxml
+pymupdf
+openai
+pydantic
+python-dotenv

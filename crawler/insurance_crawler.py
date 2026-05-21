@@ -1,14 +1,17 @@
 import asyncio
+
 from collections import deque
-from urllib.parse import urljoin, urldefrag
+from urllib.parse import urljoin
+from urllib.parse import urldefrag
 
 import aiohttp
+
 from bs4 import BeautifulSoup
 
-from config import *
-from downloader import download_pdf
-from logger import logger
-from utils import is_same_domain
+from crawler.config import *
+from crawler.downloader import download_pdf
+from crawler.logger import logger
+from crawler.utils import is_same_domain
 
 
 class InsuranceCrawler:
@@ -22,7 +25,6 @@ class InsuranceCrawler:
         self.pdfs = set()
 
         self.pages_crawled = 0
-        self.pdfs_downloaded = 0
         self.errors = 0
 
     async def fetch(self, session, url):
@@ -39,7 +41,8 @@ class InsuranceCrawler:
                 if response.status != 200:
 
                     logger.warning(
-                        f"Non-200 status {response.status} for {url}"
+                        f"Non-200 status "
+                        f"{response.status} for {url}"
                     )
 
                     return None, None
@@ -49,7 +52,7 @@ class InsuranceCrawler:
                     ""
                 ).lower()
 
-                # Direct PDF Detection
+                # Direct PDF detection
                 if "application/pdf" in content_type:
 
                     return "PDF", response
@@ -126,10 +129,6 @@ class InsuranceCrawler:
                     f"Current: {current_url}"
                 )
 
-                logger.info(
-                    f"Crawling: {current_url}"
-                )
-
                 html, response = await self.fetch(
                     session,
                     current_url
@@ -138,7 +137,7 @@ class InsuranceCrawler:
                 if not html:
                     continue
 
-                # Direct PDF Response
+                # Direct PDF response
                 if html == "PDF":
 
                     if current_url not in self.pdfs:
@@ -161,7 +160,7 @@ class InsuranceCrawler:
                     )
 
                 except Exception as e:
-                    
+
                     self.errors += 1
 
                     logger.error(
@@ -194,7 +193,7 @@ class InsuranceCrawler:
                             absolute_url
                         )[0]
 
-                        # Restrict external domains
+                        # Restrict to same domain
                         if not is_same_domain(
                             self.start_url,
                             absolute_url

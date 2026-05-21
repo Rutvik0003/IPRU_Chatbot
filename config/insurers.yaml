@@ -1,5 +1,5 @@
 companies:
 
-  - name: icici_lombard
-    url: https://www.icicilombard.com/
+  - name: test_company
+    url: http://localhost:5500/
 
