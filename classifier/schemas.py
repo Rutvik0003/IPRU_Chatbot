@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -9,8 +11,8 @@ class InsuranceDocument(BaseModel):
 
     insurance_type: str = "unknown"
 
-    company: str = "unknown"
+    company: Optional[str] = "unknown"
 
-    product_name: str = "unknown"
+    product_name: Optional[str] = "unknown"
 
     confidence: float = 0.0

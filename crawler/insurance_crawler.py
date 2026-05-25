@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 from collections import deque
 from urllib.parse import urljoin
@@ -13,6 +14,11 @@ from crawler.downloader import download_pdf
 from crawler.logger import logger
 from crawler.utils import is_same_domain
 
+from shared.file_filter import (
+    should_reject_file,
+    is_priority_insurance_file
+)
+
 
 class InsuranceCrawler:
 
@@ -26,6 +32,10 @@ class InsuranceCrawler:
 
         self.pages_crawled = 0
         self.errors = 0
+
+        # Stats
+        self.rejected_by_rule = 0
+        self.priority_files = 0
 
     async def fetch(self, session, url):
 
@@ -78,6 +88,74 @@ class InsuranceCrawler:
 
             return None, None
 
+    async def process_pdf_link(
+        self,
+        session,
+        pdf_url
+    ):
+
+        try:
+
+            filename = os.path.basename(
+                pdf_url
+            ).lower()
+
+            # -------------------------
+            # RULE-BASED REJECTION
+            # -------------------------
+
+            if should_reject_file(
+                filename
+            ):
+
+                self.rejected_by_rule += 1
+
+                print(
+                    f"[RULE REJECTED] "
+                    f"{filename}"
+                )
+
+                logger.info(
+                    f"Rejected by filename rule: "
+                    f"{filename}"
+                )
+
+                return
+
+            # -------------------------
+            # PRIORITY INSURANCE FILE
+            # -------------------------
+
+            if is_priority_insurance_file(
+                filename
+            ):
+
+                self.priority_files += 1
+
+                print(
+                    f"[PRIORITY PDF] "
+                    f"{filename}"
+                )
+
+            # -------------------------
+            # DOWNLOAD PDF
+            # -------------------------
+
+            await download_pdf(
+                session,
+                pdf_url,
+                self.company_name
+            )
+
+        except Exception as e:
+
+            self.errors += 1
+
+            logger.error(
+                f"PDF processing failed "
+                f"for {pdf_url}: {e}"
+            )
+
     async def crawl(self):
 
         timeout = aiohttp.ClientTimeout(
@@ -117,7 +195,9 @@ class InsuranceCrawler:
                 if depth > MAX_DEPTH:
                     continue
 
-                self.visited.add(current_url)
+                self.visited.add(
+                    current_url
+                )
 
                 self.pages_crawled += 1
 
@@ -125,6 +205,8 @@ class InsuranceCrawler:
                     f"[{self.company_name}] "
                     f"Pages: {self.pages_crawled} | "
                     f"PDFs: {len(self.pdfs)} | "
+                    f"Rejected: {self.rejected_by_rule} | "
+                    f"Priority: {self.priority_files} | "
                     f"Queue: {len(queue)} | "
                     f"Current: {current_url}"
                 )
@@ -142,12 +224,13 @@ class InsuranceCrawler:
 
                     if current_url not in self.pdfs:
 
-                        self.pdfs.add(current_url)
+                        self.pdfs.add(
+                            current_url
+                        )
 
-                        await download_pdf(
+                        await self.process_pdf_link(
                             session,
-                            current_url,
-                            self.company_name
+                            current_url
                         )
 
                     continue
@@ -200,7 +283,7 @@ class InsuranceCrawler:
                         ):
                             continue
 
-                        # Ignore mailto/javascript/tel
+                        # Ignore unsupported links
                         if absolute_url.startswith(
                             (
                                 "mailto:",
@@ -225,10 +308,9 @@ class InsuranceCrawler:
                                 )
 
                                 tasks.append(
-                                    download_pdf(
+                                    self.process_pdf_link(
                                         session,
-                                        absolute_url,
-                                        self.company_name
+                                        absolute_url
                                     )
                                 )
 
@@ -266,6 +348,8 @@ class InsuranceCrawler:
             f"Company: {self.company_name}\n"
             f"Pages Crawled: {self.pages_crawled}\n"
             f"PDFs Found: {len(self.pdfs)}\n"
+            f"Rejected By Rules: {self.rejected_by_rule}\n"
+            f"Priority PDFs: {self.priority_files}\n"
             f"Errors: {self.errors}\n"
             f"================================\n"
         )

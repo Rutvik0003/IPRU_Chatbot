@@ -1,7 +1,15 @@
 import asyncio
 
-from classifier.pipeline import process_pdf
-from shared.queue_manager import pdf_queue
+from classifier.pipeline import (
+    process_pdf
+)
+
+from shared.queue_manager import (
+    pdf_queue
+)
+
+
+REQUEST_DELAY = 5
 
 
 async def classifier_worker(worker_id):
@@ -20,6 +28,11 @@ async def classifier_worker(worker_id):
             await asyncio.to_thread(
                 process_pdf,
                 pdf_path
+            )
+
+            # Throttle requests
+            await asyncio.sleep(
+                REQUEST_DELAY
             )
 
         except Exception as e:

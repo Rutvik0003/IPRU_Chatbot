@@ -1,5 +1,4 @@
 companies:
 
-  - name: test_company
-    url: http://localhost:5500/
-
+  - name: ICICI Prudential Life Insurance
+    url: https://www.iciciprulife.com/
