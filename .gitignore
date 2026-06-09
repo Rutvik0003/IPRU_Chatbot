@@ -218,3 +218,13 @@ __marimo__/
 .streamlit/secrets.toml
 
 .env
+
+# Project-specific exclusions
+data/raw/
+data/processed/
+data/chroma/
+.DS_Store
+CLAUDE_CODE_PROMPT.md
+
+# Keep feature JSON stubs but not heavy data
+# data/features/ is small (272K) — include it

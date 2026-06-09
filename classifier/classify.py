@@ -3,8 +3,8 @@ import json
 import re
 import time
 
+import requests
 from dotenv import load_dotenv
-from openai import OpenAI
 
 from classifier.schemas import (
     InsuranceDocument
@@ -12,15 +12,8 @@ from classifier.schemas import (
 
 load_dotenv()
 
-client = OpenAI(
-    api_key=os.getenv(
-        "OPENROUTER_API_KEY"
-    ),
-    base_url=(
-        # "https://generativelanguage.googleapis.com/v1beta/openai/"
-        'https://openrouter.ai/api/v1/'
-    )
-)
+OLLAMA_URL   = os.getenv("OLLAMA_URL",   "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma3:4b")
 
 
 SYSTEM_PROMPT = """
@@ -62,13 +55,6 @@ Possible insurance_type:
 - investment
 - unknown
 """
-
-
-MODEL_NAME = (
-    # "gemini-2.5-flash"
-    'openai/gpt-oss-120b:free'
-    # "deepseek/deepseek-v4-flash:free"
-)
 
 MAX_RETRIES = 2
 
@@ -118,68 +104,51 @@ def call_llm(text):
 
         try:
 
-            response = (
-                client.chat.completions.create(
-
-                    model=MODEL_NAME,
-
-                    response_format={
-                        "type": "json_object"
-                    },
-
-
-                    messages=[
+            response = requests.post(
+                f"{OLLAMA_URL}/api/chat",
+                json={
+                    "model": OLLAMA_MODEL,
+                    "messages": [
                         {
                             "role": "system",
-                            "content": (
-                                SYSTEM_PROMPT
-                            )
+                            "content": SYSTEM_PROMPT
                         },
                         {
                             "role": "user",
-                            "content": (
-                                text[:10000]
-                            )
+                            "content": text[:10000]
                         }
                     ],
-
-                    temperature=0
-                )
+                    "format": "json",
+                    "stream": False,
+                    "options": {
+                        "temperature": 0,
+                        "num_predict": 300,
+                    },
+                },
+                timeout=90,
             )
 
+            response.raise_for_status()
+
             return (
-                response
-                .choices[0]
-                .message
-                .content
+                response.json()
+                ["message"]
+                ["content"]
             )
 
         except Exception as e:
-
-            error_str = str(e)
 
             print(
                 f"\nAttempt "
                 f"{attempt+1} failed:"
             )
 
-            print(error_str)
+            print(str(e))
 
-            # Handle rate limits
-            if "429" in error_str:
-
-                wait_time = (
-                    2 ** attempt
-                )
-
-                print(
-                    f"Rate limited. "
-                    f"Waiting "
-                    f"{wait_time}s..."
-                )
+            if attempt < MAX_RETRIES - 1:
 
                 time.sleep(
-                    wait_time
+                    2 ** attempt
                 )
 
             else:

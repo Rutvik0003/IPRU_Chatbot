@@ -142,7 +142,6 @@ class InsuranceCrawler:
             # -------------------------
 
             await download_pdf(
-                session,
                 pdf_url,
                 self.company_name
             )

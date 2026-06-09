@@ -1,4 +1,24 @@
 companies:
 
+  # ── IPru (primary) ─────────────────────────────────────────────────────────
   - name: ICICI Prudential Life Insurance
     url: https://www.iciciprulife.com/
+
+  # ── Competitors ────────────────────────────────────────────────────────────
+  - name: HDFC Life
+    url: https://www.hdfclife.com/
+
+  - name: SBI Life
+    url: https://www.sbilife.co.in/
+
+  - name: Max Life Insurance
+    url: https://www.maxlifeinsurance.com/
+
+  - name: Bajaj Allianz Life
+    url: https://www.bajajallianzlife.com/
+
+  - name: Tata AIA Life
+    url: https://www.tataaia.com/
+
+  - name: LIC India
+    url: https://licindia.in/
